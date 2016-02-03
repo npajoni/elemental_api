@@ -57,7 +57,7 @@ class ElementalJob(object):
 	    except ExpatError as err:
 		raise ElementalError('Unable to load XML: %s' % err)
 	    
-	    self.id 		= JobXml.find('input').find('id').text
+	    self.id		= JobXml.get('href').split('/')[2]
 	    self.status 	= JobXml.find('status').text
 	    self.priority	= JobXml.find('priority').text
 	    self.progress	= JobXml.find('pct_complete').text
@@ -283,24 +283,24 @@ def CreateJobFromProfile(Server = None, Input= None, OutputPath = None, OutputFi
 		        profile.text = ElementalProfile.Id
 
 			#Test de Subs
-#		        caption_selector = SubElement(job, "caption_selector")
-#		        order = SubElement(caption_selector, "order")
-#		        order.text = "1"
-#		        source_type = SubElement(caption_selector, "source_type")
-#		        source_type.text = "SRT"
-#		        file_source_settings = SubElement(caption_selector, "file_source_settings")
-#		        infer_external_filename = SubElement(file_source_settings, "infer_external_filename")
-#		        infer_external_filename.text = "false"
-#		        time_delta = SubElement(file_source_settings, "time_delta")
-#		        time_delta.attrib['nil'] = 'true'
-#		        upconvert_608_to_708 = SubElement(file_source_settings, "upconvert_608_to_708")
-#		        source_file = SubElement(file_source_settings, "source_file")
-#		        uri = SubElement(source_file, "uri")
-#		        uri.text = "/data/mnt/input/Avengers.Age.of.Ultron.2015.1080p.BluRay.x264-SPARKS.srt"
+		        caption_selector = SubElement(input, "caption_selector")
+		        order = SubElement(caption_selector, "order")
+		        order.text = "1"
+		        source_type = SubElement(caption_selector, "source_type")
+		        source_type.text = "SRT"
+		        file_source_settings = SubElement(caption_selector, "file_source_settings")
+		        infer_external_filename = SubElement(file_source_settings, "infer_external_filename")
+		        infer_external_filename.text = "false"
+		        time_delta = SubElement(file_source_settings, "time_delta")
+		        time_delta.attrib['nil'] = 'true'
+		        upconvert_608_to_708 = SubElement(file_source_settings, "upconvert_608_to_708")
+		        source_file = SubElement(file_source_settings, "source_file")
+		        uri = SubElement(source_file, "uri")
+		        uri.text = "/data/mnt/input/VID_20160108_120046358.srt"
 		        
     
 		        xml = xmlheader + tostring(job, encoding="utf-8")
-		        print xml
+			print xml
 		        
 		        eJob = ElementalJob(Server)
 		        try:
