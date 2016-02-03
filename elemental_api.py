@@ -275,7 +275,7 @@ def CreateJobFromProfile(Server = None, Input= None, OutputPath = None, OutputFi
 		        order.text = ElementalProfile.OutputOrder
 		        name = SubElement(output_group, "name")
 		        name.attrib["nil"] = 'true'
-		        group_settings =  SubElement(output_group, p.OutputGroupName)
+		        group_settings =  SubElement(output_group, ElementalProfile.OutputGroupName)
 		        destination = SubElement (group_settings, "destination")
 		        uri = SubElement(destination, "uri")
 		        uri.text = Output
