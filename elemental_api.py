@@ -36,8 +36,11 @@ class ElementalJob(object):
 	self.id			= id
 	self.server		= server
 	self.file_input		= ''
+	self.output_path	= ''
+	self.output_basename	= ''
 	self.files_output	= []
 	self.profileId		= ''
+	self.presetId		= ''
 	self.status		= ''
 	self.priority		= ''
 	self.progress		= ''
@@ -64,10 +67,10 @@ class ElementalJob(object):
 	    self.average_fps	= JobXml.find('average_fps').text
 	    self.elapsed	= JobXml.find('elapsed').text
 	    self.file_input	= JobXml.find('input').find('file_input').find('uri').text
-    	    self.files_output = []
+    	    self.files_output 	= []
     	    self.error_messages = []
     	    # Falta agregar al listado de outputs el m3u8 principal
-		
+	    	    
 	    
 	    for output in JobXml.find('output_group').findall('output'):
 	        uri = output.find('full_uri')
@@ -90,6 +93,91 @@ class ElementalJob(object):
 	    raise ElementalError('Unable to update: %s' % e)
 	
 
+    def __CreateXml(self):
+	if self.server is None:
+	    raise ElementalError('server undefined')
+	if self.file_input is None:
+	    raise ElementalError('file_input undefined')	
+	if self.output_path is None:
+	    raise ElementalError('output_path undefined')
+	if self.output_basename is None:
+	    raise ElementalError('output_basename undefined')
+        
+	if self.output_path.endswith('/'):
+	    output = self.output_path + self.output_basename
+	else:
+	    output = self.output_path + '/' + self.output_basename
+
+	if self.presetId is not None:
+            xmlheader = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+            job = Element("job")
+            input = SubElement(job, "input")
+            file_input = SubElement(input, "file_input")
+            uri = SubElement(file_input, "uri")
+            uri.text = self.file_input
+            output_group = SubElement(job, "output_group")
+            order = SubElement(output_group, "order")
+            order.text = "1"
+            group_settings =  SubElement(output_group, "file_group_settings")
+            destination = SubElement (group_settings, "destination")
+            uri = SubElement(destination, "uri")
+            uri.text = output
+	    type = SubElement(output_group, "type")
+	    type.text = "file_group_settings"
+	    output = SubElement (output_group, "output")
+	    stream_assembly_name =  SubElement (output, "stream_assembly_name")
+	    stream_assembly_name.text = "stream_1"
+	    order = SubElement (output, "order")
+	    order.text = "1"
+	    preset = SubElement (output, "preset")
+	    preset.text = self.presetId
+	    stream_assembly = SubElement (job, "stream_assembly")
+	    name = SubElement (stream_assembly, "name")
+	    name.text = "stream_1"
+	    preset = SubElement (stream_assembly, "preset")
+	    preset.text = self.presetId
+            xml = xmlheader + tostring(job, encoding="utf-8")
+
+	elif self.profileId is not None:
+	    job = Element("job")
+	    input = SubElement(job, "input")
+	    file_input = SubElement(input, "file_input")
+	    uri = SubElement(file_input, "uri")
+	    uri.text = self.input_file
+	    output_group = SubElement(job, "output_group")
+	    order = SubElement(output_group, "order")
+	    order.text = '1'
+	    name = SubElement(output_group, "name")
+	    name.attrib["nil"] = 'true'
+	    group_settings =  SubElement(output_group, "apple_live_group_settings")
+	    destination = SubElement (group_settings, "destination")
+	    uri = SubElement(destination, "uri")
+	    uri.text = output
+	    profile = SubElement(job, "profile")
+	    profile.text = self.profile.Id
+
+	    #Test de Subs
+#	    caption_selector = SubElement(input, "caption_selector")
+#	    order = SubElement(caption_selector, "order")
+#	    order.text = "1"
+#	    source_type = SubElement(caption_selector, "source_type")
+#	    source_type.text = "SRT"
+#	    file_source_settings = SubElement(caption_selector, "file_source_settings")
+#	    infer_external_filename = SubElement(file_source_settings, "infer_external_filename")
+#	    infer_external_filename.text = "false"
+#	    time_delta = SubElement(file_source_settings, "time_delta")
+#	    time_delta.attrib['nil'] = 'true'
+#	    upconvert_608_to_708 = SubElement(file_source_settings, "upconvert_608_to_708")
+#	    source_file = SubElement(file_source_settings, "source_file")
+#	    uri = SubElement(source_file, "uri")
+#	    uri.text = "/data/mnt/input/Avengers.Age.of.Ultron.2015.1080p.BluRay.x264-SPARKS.srt"
+	    xml = xmlheader + tostring(job, encoding="utf-8")
+
+        else:
+            raise ElementalError('presetId or profileId undefined')
+        
+	return xml
+	
 
     def sendJob(self, server = None, Xml = None, priority = None):
 	if Xml != None:
@@ -173,6 +261,25 @@ class ElementalJob(object):
 
 #    def resubmit(self):
 
+    def start(self):
+        if self.server is None:
+	    raise ElementalError('Server undefined')
+	if self.file_input is None:
+	    raise ElementalError('file_input undefined')
+	if self.output_path is None:
+	    raise ElementalError('output_path undefined')
+        if self.output_basename is None:
+	    raise ElementalError('output_basename undefined')
+        if self.presetId is None and self.profileId is None:
+	    raise ElementalError('presetId or profileId undefined')
+	
+        try:
+	    xml = self.__CreateXml()
+	    print xml
+            self.sendJob(self.server, xml)
+            return self.id
+        except ElementalError as err:
+            raise ElementalError(err)
 
 
 
@@ -250,137 +357,6 @@ class Elemental(object):
 	    
 	#return ret
 	
-		 
 
-def CreateJobFromProfile(Server = None, Input= None, OutputPath = None, OutputFilename = None ,ElementalProfile =  None):
-    
-    if OutputPath != None:
-	if OutputFilename != None:
-	    if OutputPath.endswith('/'):
-		Output = OutputPath + OutputFilename
-	    else:
-		Output = OutputPath + '/' + OutputFilename
-	    if Input != None:
-		if Server != None:
-		    if ElementalProfile != None:
-			xmlheader = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
-    
-		        job = Element("job")
-		        input = SubElement(job, "input")
-		        file_input = SubElement(input, "file_input")
-		        uri = SubElement(file_input, "uri")
-		        uri.text = Input
-		        output_group = SubElement(job, "output_group")
-		        order = SubElement(output_group, "order")
-		        order.text = ElementalProfile.OutputOrder
-		        name = SubElement(output_group, "name")
-		        name.attrib["nil"] = 'true'
-		        group_settings =  SubElement(output_group, ElementalProfile.OutputGroupName)
-		        destination = SubElement (group_settings, "destination")
-		        uri = SubElement(destination, "uri")
-		        uri.text = Output
-		        profile = SubElement(job, "profile")
-		        profile.text = ElementalProfile.Id
 
-			#Test de Subs
-		        caption_selector = SubElement(input, "caption_selector")
-		        order = SubElement(caption_selector, "order")
-		        order.text = "1"
-		        source_type = SubElement(caption_selector, "source_type")
-		        source_type.text = "SRT"
-		        file_source_settings = SubElement(caption_selector, "file_source_settings")
-		        infer_external_filename = SubElement(file_source_settings, "infer_external_filename")
-		        infer_external_filename.text = "false"
-		        time_delta = SubElement(file_source_settings, "time_delta")
-		        time_delta.attrib['nil'] = 'true'
-		        upconvert_608_to_708 = SubElement(file_source_settings, "upconvert_608_to_708")
-		        source_file = SubElement(file_source_settings, "source_file")
-		        uri = SubElement(source_file, "uri")
-		        uri.text = "/data/mnt/input/Avengers.Age.of.Ultron.2015.1080p.BluRay.x264-SPARKS.srt"
-		        
-    
-		        xml = xmlheader + tostring(job, encoding="utf-8")
-			print xml
-		        
-		        eJob = ElementalJob(Server)
-		        try:
-			    eJob.sendJob(Server,xml)
-			    return eJob
-			except ElementalError as err:
-			    raise ElementalError(err)    		        
-		    else:
-			raise ElementalError('Invalid Elemental Profile')
-		else:
-		    raise ElementalError('Invalid server')
-	    else:
-		raise ElementalError('Invalid input')
-	else:
-	    raise ElementalError('Invalid output filename')
-    else:    
-	raise ElementalError('Invalid output path')
-   
-
-def CreateJob(Server = None, Input= None, OutputPath = None, OutputFilename = None ,Preset =  None):
-
-    if OutputPath != None:
-        if OutputFilename != None:
-            if OutputPath.endswith('/'):
-                Output = OutputPath + OutputFilename
-            else:
-                Output = OutputPath + '/' + OutputFilename
-            if Input != None:
-                if Server != None:
-                    if Preset != None:
-                        xmlheader = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
-
-                        job = Element("job")
-                        input = SubElement(job, "input")
-                        file_input = SubElement(input, "file_input")
-                        uri = SubElement(file_input, "uri")
-                        uri.text = Input
-                        output_group = SubElement(job, "output_group")
-                        order = SubElement(output_group, "order")
-                        order.text = "1"
-                        group_settings =  SubElement(output_group, "file_group_settings")
-                        destination = SubElement (group_settings, "destination")
-                        uri = SubElement(destination, "uri")
-                        uri.text = Output
-			type = SubElement(output_group, "type")
-			type.text = "file_group_settings"
-			output = SubElement (output_group, "output")
-			stream_assembly_name =  SubElement (output, "stream_assembly_name")
-			stream_assembly_name.text = "stream_1"
-#			name_modifier = SubElement (output, "name_modifier")
-#			name_modifier.text = "_test"
-#			container = SubElement (output, "container")
-#			container.text = "MPEG-4 Container"
-			order = SubElement (output, "order")
-			order.text = "1"
-			preset = SubElement (output, "preset")
-			preset.text = Preset
-			stream_assembly = SubElement (job, "stream_assembly")
-			name = SubElement (stream_assembly, "name")
-			name.text = "stream_1"
-			preset = SubElement (stream_assembly, "preset")
-			preset.text = Preset
-
-                        xml = xmlheader + tostring(job, encoding="utf-8")
-                        print xml
-
-                        eJob = ElementalJob(Server)
-                        try:
-                            eJob.sendJob(Server,xml)
-                            return eJob
-                        except ElementalError as err:
-                            raise ElementalError(err)
-                    else:
-                        raise ElementalError('Invalid Preset')
-                else:
-                    raise ElementalError('Invalid server')
-            else:
-                raise ElementalError('Invalid input')
-        else:
-            raise ElementalError('Invalid output filename')
-    else:
-        raise ElementalError('Invalid output path')
 
