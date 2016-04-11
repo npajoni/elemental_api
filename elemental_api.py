@@ -296,7 +296,7 @@ def CreateJobFromProfile(Server = None, Input= None, OutputPath = None, OutputFi
 		        upconvert_608_to_708 = SubElement(file_source_settings, "upconvert_608_to_708")
 		        source_file = SubElement(file_source_settings, "source_file")
 		        uri = SubElement(source_file, "uri")
-		        uri.text = "/data/mnt/input/VID_20160108_120046358.srt"
+		        uri.text = "/data/mnt/input/Avengers.Age.of.Ultron.2015.1080p.BluRay.x264-SPARKS.srt"
 		        
     
 		        xml = xmlheader + tostring(job, encoding="utf-8")
@@ -318,4 +318,69 @@ def CreateJobFromProfile(Server = None, Input= None, OutputPath = None, OutputFi
 	    raise ElementalError('Invalid output filename')
     else:    
 	raise ElementalError('Invalid output path')
-    
+   
+
+def CreateJob(Server = None, Input= None, OutputPath = None, OutputFilename = None ,Preset =  None):
+
+    if OutputPath != None:
+        if OutputFilename != None:
+            if OutputPath.endswith('/'):
+                Output = OutputPath + OutputFilename
+            else:
+                Output = OutputPath + '/' + OutputFilename
+            if Input != None:
+                if Server != None:
+                    if Preset != None:
+                        xmlheader = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+
+                        job = Element("job")
+                        input = SubElement(job, "input")
+                        file_input = SubElement(input, "file_input")
+                        uri = SubElement(file_input, "uri")
+                        uri.text = Input
+                        output_group = SubElement(job, "output_group")
+                        order = SubElement(output_group, "order")
+                        order.text = "1"
+                        group_settings =  SubElement(output_group, "file_group_settings")
+                        destination = SubElement (group_settings, "destination")
+                        uri = SubElement(destination, "uri")
+                        uri.text = Output
+			type = SubElement(output_group, "type")
+			type.text = "file_group_settings"
+			output = SubElement (output_group, "output")
+			stream_assembly_name =  SubElement (output, "stream_assembly_name")
+			stream_assembly_name.text = "stream_1"
+#			name_modifier = SubElement (output, "name_modifier")
+#			name_modifier.text = "_test"
+#			container = SubElement (output, "container")
+#			container.text = "MPEG-4 Container"
+			order = SubElement (output, "order")
+			order.text = "1"
+			preset = SubElement (output, "preset")
+			preset.text = Preset
+			stream_assembly = SubElement (job, "stream_assembly")
+			name = SubElement (stream_assembly, "name")
+			name.text = "stream_1"
+			preset = SubElement (stream_assembly, "preset")
+			preset.text = Preset
+
+                        xml = xmlheader + tostring(job, encoding="utf-8")
+                        print xml
+
+                        eJob = ElementalJob(Server)
+                        try:
+                            eJob.sendJob(Server,xml)
+                            return eJob
+                        except ElementalError as err:
+                            raise ElementalError(err)
+                    else:
+                        raise ElementalError('Invalid Preset')
+                else:
+                    raise ElementalError('Invalid server')
+            else:
+                raise ElementalError('Invalid input')
+        else:
+            raise ElementalError('Invalid output filename')
+    else:
+        raise ElementalError('Invalid output path')
+
